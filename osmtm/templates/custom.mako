@@ -1,10 +1,10 @@
 <%def  name="instance_name()">
-  OSM Tasking Manager
+  AIGH Tasking Manager
 </%def>
 
 <%def  name="about_tasking_manager_intro()">
     <p>
-    ${_('OSM Tasking Manager is a mapping tool designed and built for the Humanitarian OSM Team collaborative mapping. The purpose of the tool is to divide up a mapping job into smaller tasks that can be completed rapidly. It shows which areas need to be mapped and which areas need the mapping validated.')}
+    ${_('AIGH Tasking Manager is a fork from the mapping tool designed and built for the Humanitarian OSM Team collaborative mapping. The purpose of the tool is to create labels for internal projects.')}
     </p>
     <p>
     ${_('This approach facilitates the distribution of tasks to the various mappers in a context of emergency. It also permits control of the progress and the homogeneity of the work done (e.g. elements to cover, specific tags to use, etc.).')}
@@ -117,7 +117,4 @@
       box-shadow: 0 0 3px rgba(0,0,0,.3);
     }
   </style>
-  <div class="corner-ribbon top-left sticky orange shadow ">
-    <a href="https://donate.hotosm.org" target="_blank">${_('Please donate!')}</a>
-  </div>
 </%def>
