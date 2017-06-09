@@ -5,6 +5,7 @@ from pyramid.config import Configurator
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.session import UnencryptedCookieSessionFactoryConfig
+from waitress import serve
 
 from sqlalchemy import engine_from_config
 
@@ -39,6 +40,7 @@ except Exception as e:
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
+
     settings['mako.directories'] = 'osmtm:templates'
     load_local_settings(settings)
     settings.update({'version': version})
@@ -68,7 +70,11 @@ def main(global_config, **settings):
     session_factory = UnencryptedCookieSessionFactoryConfig('itsasecret')
     config.set_session_factory(session_factory)
 
-    config.add_static_view('static', 'static', cachebust=True)
+    host_location = settings.get('media_location', 'static')
+
+    config.add_static_view(path='osmtm:static', name = host_location)
+
+    # config.add_static_view('static', 'static', cachebust=True)
     config.add_route('home', '/')
     config.add_route('home_json', '/projects.json')
     config.add_route('about', '/about')
@@ -191,4 +197,17 @@ def main(global_config, **settings):
                       seconds=check_expiration_interval,
                       replace_existing=True)
 
-    return config.make_wsgi_app()
+    app = config.make_wsgi_app()
+
+    serve(app, listen='0.0.0.0:6543', url_scheme='https')
+
+    # server = make_server('0.0.0.0', 6543, app)
+    # server.serve_forever()
+
+
+
+
+
+
+
+

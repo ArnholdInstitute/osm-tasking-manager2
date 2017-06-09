@@ -30,7 +30,7 @@ x = json.dumps(features)
   var task_bounds = [[${bounds[1]}, ${bounds[0]}], [${bounds[3]}, ${bounds[2]}]];
   var map = L.map('map', {editable : true, scrollWheelZoom : false})
   map.fitBounds(task_bounds)
-  L.tileLayer('${tile_layer}', {maxZoom: 18}).addTo(map);
+  L.tileLayer('${tile_layer}', {maxZoom: 19, tms : true}).addTo(map);
   L.rectangle(task_bounds, {color: "#ff7800", fillOpacity : 0, weight: 1}).addTo(map);
 
   var existingFeatures = JSON.parse(${x | n})
@@ -113,7 +113,7 @@ x = json.dumps(features)
 
   map.on('click', function(event){
     $("#delete-feature").attr('hidden', "true")
-    selectedPolygon.disableEdit()
+    if(selectedPolygon) selectedPolygon.disableEdit()
     selectedPolygon = null;
   })
 

@@ -146,6 +146,9 @@ def features_post(request):
     task_id = request.matchdict['task']
     username = request.matchdict['user']
 
+    newFeatures = request.json_body['newFeatures'] if 'newFeatures' in request.json_body else []
+    editedFeatures = request.json_body['editedFeatures'] if 'editedFeatures' in request.json_body else []
+
     for feature in request.json_body['newFeatures']:
         DBSession.add(Feature(feature, project_id, task_id, username))
 
