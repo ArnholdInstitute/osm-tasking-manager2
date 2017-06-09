@@ -18,6 +18,8 @@ from ..models import (
     Feature,
 )
 
+import shapely, json
+
 from geoalchemy2 import (
     shape,
 )
@@ -93,8 +95,10 @@ def __get_task(request, lock_for_update=False):
 
 def __get_features(request, task):
     project_id = request.matchdict['project']
-    geom = shape.to_shape(task.geometry)
-    query = DBSession.query(Feature).filter(Feature.geometry.ST_Contains(str(geom)))
+    #geom = shape.to_shape(task.geometry)
+
+    
+    query = DBSession.query(Feature).filter(task.geometry.ST_Contains(Feature.geometry))
 
     try:
         features = query.all()
@@ -142,10 +146,13 @@ def features_post(request):
     task_id = request.matchdict['task']
     username = request.matchdict['user']
 
-    features = []
-    for feature in request.json_body['features']:
+    for feature in request.json_body['newFeatures']:
         DBSession.add(Feature(feature, project_id, task_id, username))
 
+    for feature in request.json_body['editedFeatures']:
+        geom = shape.from_shape(shapely.geometry.shape(feature['geometry']))
+        update = {Feature.geometry : ST_SetSRID(geom, 4326)}
+        DBSession.query(Feature).filter(Feature.id==feature['properties']['id']).update(update, synchronize_session='fetch')
     return()
 
 # Render the page to edit the map
@@ -158,10 +165,16 @@ def edit_task(request):
 
     add_comment(request, task, user)
 
+    for i, feature in enumerate(features):
+        temp = shapely.geometry.mapping(shape.to_shape(feature.geometry))
+        props = {'id' : feature.id, 'creator_id' : feature.creator_id}
+        temp = {'geometry' : temp, 'type' : 'Feature', 'properties' : props}
+        features[i] = temp
+
     return dict(
         task=task,
         user=user,
-        features=features
+        features=json.dumps(features)
     )
 
 @view_config(route_name='task_xhr', renderer='task.mako', http_cache=0)
