@@ -135,6 +135,20 @@ def get_task_ancestors(task_id, project_id):
 
     return DBSession.query(ancestors.c.id).distinct()
 
+# handle a post request of newly added features
+@view_config(route_name='features', renderer='json', request_method='POST')
+def features_post(request):
+    project_id = request.matchdict['project']
+    task_id = request.matchdict['task']
+    username = request.matchdict['user']
+
+    features = []
+    for feature in request.json_body['features']:
+        DBSession.add(Feature(feature, project_id, task_id, username))
+
+    return()
+
+# Render the page to edit the map
 @view_config(route_name='task_edit', renderer="editor.mako")
 def edit_task(request):
     user = __get_user(request)

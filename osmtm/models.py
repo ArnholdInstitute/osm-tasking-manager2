@@ -25,6 +25,8 @@ from sqlalchemy.ext.hybrid import (
     hybrid_property
 )
 
+import shapely
+
 from geoalchemy2 import (
     Geometry,
     shape,
@@ -273,7 +275,6 @@ class TaskComment(Base):
         self.comment = comment
         self.author = author
 
-
 def feature_id_factory(context):
     sql = "SELECT MAX(id) FROM features"
 
@@ -288,13 +289,18 @@ class Feature(Base):
     id = Column(Integer, default=feature_id_factory)
     geometry = Column(Geometry("Geometry", srid=4326))
     creator_id = Column(Integer, ForeignKey('users.id'))
-    date_created = Column(DateTime, default=None)
+    date_created = Column(DateTime, default=datetime.datetime.utcnow)
     project_id = Column(Integer, ForeignKey('project.id'), index=True)
 
     __table_args__ = (PrimaryKeyConstraint('project_id', 'id'),
                       Index('feature_geometry', geometry, postgresql_using='gist'),
                       {},)
 
+
+    def __init__(self, feature, project_id, task_id, creator_id):
+        self.project_id = project_id
+        self.creator_id = creator_id
+        self.geometry = ST_SetSRID(shape.from_shape(shapely.geometry.shape(feature['geometry'])), 4326)
 
 def task_id_factory(context):
     project_id = context.compiled_parameters[0]['project_id']
