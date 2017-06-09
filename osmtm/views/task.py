@@ -41,7 +41,7 @@ from pyramid.security import authenticated_userid
 
 import datetime
 import random
-import re, pdb
+import re, pdb, os
 import transaction
 
 from ..models import EXPIRATION_DELTA, ST_SetSRID
@@ -171,10 +171,13 @@ def edit_task(request):
         temp = {'geometry' : temp, 'type' : 'Feature', 'properties' : props}
         features[i] = temp
 
+    tile_layer = os.environ['TILE_LAYER'] if 'TILE_LAYER' in os.environ else 'http://{s}.tile.osm.org/{z}/{x}/{y}.png'
+
     return dict(
         task=task,
         user=user,
-        features=json.dumps(features)
+        features=json.dumps(features),
+        tile_layer=tile_layer
     )
 
 @view_config(route_name='task_xhr', renderer='task.mako', http_cache=0)
