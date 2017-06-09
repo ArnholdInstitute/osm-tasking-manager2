@@ -199,7 +199,7 @@ def main(global_config, **settings):
 
     app = config.make_wsgi_app()
 
-    serve(app, listen='0.0.0.0:6543', url_scheme='https')
+    serve(app, listen='0.0.0.0:6543', url_scheme=settings.get('url_schema', 'http'))
 
     # server = make_server('0.0.0.0', 6543, app)
     # server.serve_forever()
