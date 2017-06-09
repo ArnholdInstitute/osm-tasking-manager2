@@ -13,6 +13,7 @@ from ..models import (
     TaskLock,
     Label,
     License,
+    Feature as OSMFeature
 )
 
 from pyramid.security import authenticated_userid
@@ -99,10 +100,18 @@ def project(request):
     for area in project.priority_areas:
         features.append(Feature(geometry=shape.to_shape(area.geometry)))
 
+    contributions = DBSession.query(User.username, func.count(User.id).label('total')) \
+        .outerjoin(OSMFeature) \
+        .filter(OSMFeature.project_id == id) \
+        .group_by(User.username) \
+        .order_by('total DESC') \
+        .all()
+
     return dict(page_id='project', project=project,
                 locked_task=locked_task,
                 history=history,
-                priority_areas=FeatureCollection(features),)
+                priority_areas=FeatureCollection(features),
+                contributions=contributions)
 
 
 @view_config(route_name="project_json", renderer='json',

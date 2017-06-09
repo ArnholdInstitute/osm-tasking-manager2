@@ -30,3 +30,22 @@ ${helpers.display_project_info(project=project)}
     <span class="glyphicon glyphicon-share-alt"></span>&nbsp;
     ${_('Instructions')}</a>
 </p>
+
+<div class="table-responsive">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Contributions</th>
+      </tr>
+    </thead>
+    <tbody>
+      % for user_id, num in contributions:
+        <tr>
+          <td>${user_id}</td>
+          <td>${num}</td>
+        </tr>
+      % endfor
+    </tbody>
+  </table>
+</div>
