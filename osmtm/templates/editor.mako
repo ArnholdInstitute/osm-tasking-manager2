@@ -20,8 +20,6 @@ x = json.dumps(features)
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
-<link rel="stylesheet" href="${request.static_url('osmtm:static/js/lib/Leaflet.draw/dist/leaflet.draw.css')}"/>
-<script src="${request.static_url('osmtm:static/js/lib/Leaflet.draw/dist/leaflet.draw.js')}"></script>
 <script src="${request.static_url('osmtm:static/js/lib/Leaflet.Editable.js')}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>   
@@ -35,8 +33,10 @@ x = json.dumps(features)
 
   var existingFeatures = JSON.parse(${x | n})
 
-  var edited = {}
+  var edited = {};
   var polygons = {};
+  var deleted = [];
+
   var nextID = 0;
   var selectedPolygon = null;
 
@@ -63,7 +63,7 @@ x = json.dumps(features)
   L.NewPolygonControl = L.EditControl.extend({
     options: {
       position: 'topleft',
-      callback: map.editTools.startPolygon,
+      callback: function(latlng){map.editTools.startPolygon(latlng, {weight : 1})},
       kind: 'polygon',
       html: '⬠'
     }
@@ -99,16 +99,31 @@ x = json.dumps(features)
   })
 
   $("#delete-feature").click(function(e){
-    delete polygons[selectedPolygon.id]
+    if(polygons[selectedPolygon.id] == null){
+      //This was a pre-existing polygon...
+      if(edited[selectedPolygon.id] != null){
+        //Don't send the server these edits...
+        delete edited[selectedPolygon.id];
+      }
+      deleted.push(selectedPolygon.id);
+    }else{
+      delete polygons[selectedPolygon.id]
+    }
     map.removeLayer(selectedPolygon)
   })
 
-  map.on('editable:drawing:end', e => {
+  map.on('editable:drawing:end', function(e){
     const polygon = e.layer;
     polygon.id = nextID;
     polygons[nextID] = polygon;
     nextID++;
     _disableClickPropagation(polygon.getElement(), polygon)
+  })
+
+  map.on('editable:drawing:start', function(e){
+    console.log('Started polygon')
+    const polygon = e.layer;
+    // polygon.disableEdit();
   })
 
   map.on('click', function(event){
@@ -133,7 +148,11 @@ x = json.dumps(features)
       $.ajax({
         type : 'POST',
         url : "${request.route_path('features', task=task.id, project=task.project_id, user=user.id)}",
-        data : JSON.stringify({newFeatures : newFeatures, editedFeatures : editedFeatures}),
+        data : JSON.stringify({
+          newFeatures : newFeatures, 
+          editedFeatures : editedFeatures,
+          deletedIDs : deleted
+        }),
         contentType: "application/json; charset=utf-8",
         dataType : "json",
         success : function(){

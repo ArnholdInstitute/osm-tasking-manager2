@@ -148,14 +148,19 @@ def features_post(request):
 
     newFeatures = request.json_body['newFeatures'] if 'newFeatures' in request.json_body else []
     editedFeatures = request.json_body['editedFeatures'] if 'editedFeatures' in request.json_body else []
+    deletedIDs = request.json_body['deletedIDs'] if 'deletedIDs' in request.json_body else []
 
-    for feature in request.json_body['newFeatures']:
+    for feature in newFeatures:
         DBSession.add(Feature(feature, project_id, task_id, username))
 
-    for feature in request.json_body['editedFeatures']:
+    for feature in editedFeatures:
         geom = shape.from_shape(shapely.geometry.shape(feature['geometry']))
         update = {Feature.geometry : ST_SetSRID(geom, 4326)}
         DBSession.query(Feature).filter(Feature.id==feature['properties']['id']).update(update, synchronize_session='fetch')
+    
+    for id in deletedIDs:
+        DBSession.query(Feature).filter(Feature.id == id).delete()
+
     return()
 
 # Render the page to edit the map
