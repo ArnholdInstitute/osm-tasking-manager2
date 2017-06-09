@@ -271,6 +271,28 @@ class TaskComment(Base):
         self.author = author
 
 
+def feature_id_factory(context):
+    sql = "SELECT MAX(id) FROM features"
+
+    result = context.connection.execute(sql).fetchone()[0]
+    if result > 0:
+        return result + 1
+    else:
+        return 1
+
+class Feature(Base):
+    __tablename__ = "features"
+    id = Column(Integer, default=feature_id_factory)
+    geometry = Column(Geometry("Geometry", srid=4326))
+    creator_id = Column(Integer, ForeignKey('users.id'))
+    date_created = Column(DateTime, default=None)
+    project_id = Column(Integer, ForeignKey('project.id'), index=True)
+
+    __table_args__ = (PrimaryKeyConstraint('project_id', 'id'),
+                      Index('feature_geometry', geometry, postgresql_using='gist'),
+                      {},)
+
+
 def task_id_factory(context):
     project_id = context.compiled_parameters[0]['project_id']
 
@@ -284,7 +306,6 @@ def task_id_factory(context):
         return result + 1
     else:
         return 1
-
 
 class Task(Base):
     __tablename__ = "task"
