@@ -15,6 +15,7 @@ from ..models import (
     Project,
     User,
     Message,
+    Feature,
 )
 
 from geoalchemy2 import (
@@ -38,7 +39,7 @@ from pyramid.security import authenticated_userid
 
 import datetime
 import random
-import re
+import re, pdb
 import transaction
 
 from ..models import EXPIRATION_DELTA, ST_SetSRID
@@ -90,6 +91,17 @@ def __get_task(request, lock_for_update=False):
         raise HTTPNotFound(_("This task doesn't exist."))
     return task
 
+def __get_features(request, task):
+    project_id = request.matchdict['project']
+    geom = shape.to_shape(task.geometry)
+    query = DBSession.query(Feature).filter(Feature.geometry.ST_Contains(str(geom)))
+
+    try:
+        features = query.all()
+    except OperationalError:  # pragma: no cover
+        raise HTTPBadRequest(_("Cannot update task. Record lock for update."))
+
+    return features
 
 def __ensure_task_locked(request, task, user):
     _ = request.translate
@@ -123,6 +135,20 @@ def get_task_ancestors(task_id, project_id):
 
     return DBSession.query(ancestors.c.id).distinct()
 
+@view_config(route_name='task_edit', renderer="editor.mako")
+def edit_task(request):
+    user = __get_user(request)
+    task = __get_task(request)
+    features = __get_features(request, task)
+    __ensure_task_locked(request, task, user)
+
+    add_comment(request, task, user)
+
+    return dict(
+        task=task,
+        user=user,
+        features=features
+    )
 
 @view_config(route_name='task_xhr', renderer='task.mako', http_cache=0)
 def task_xhr(request):
@@ -239,6 +265,7 @@ def lock(request):
     DBSession.add(task)
     return dict(success=True, task=dict(id=task.id),
                 msg=_("Task locked. You can start mapping."))
+
 
 
 @view_config(route_name='task_unlock', renderer="json")

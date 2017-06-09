@@ -138,6 +138,7 @@ def main(global_config, **settings):
                      xhr=True, request_method='DELETE')
     config.add_route('task_users',
                      '/project/{project:\d+}/task/{task:\d+}/users')
+    config.add_route('task_edit', '/project/{project:\d+}/task/{task:\d+}/task_edit')
 
     config.add_route('labels', '/labels')
     config.add_route('label_new', '/label/new')

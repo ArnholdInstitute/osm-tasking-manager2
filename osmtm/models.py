@@ -105,6 +105,9 @@ class ST_SetSRID(GenericFunction):
     name = 'ST_SetSRID'
     type = Geometry
 
+class ST_Contains(GenericFunction):
+    name = 'ST_Contains'
+    type = Geometry
 
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
