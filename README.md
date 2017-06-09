@@ -1,28 +1,36 @@
-# Security Notice
+# AIGH Tasking Manager
 
-There is a known SECURITY VULNERABILITY in the current release and previous releases of this software. Please contact info@hotosm.org for information on how to fix this vulnerability if you have it deployed publicly.
-
-We will fix the vulnerability in the code in this GitHub repository in the next 2 weeks (by May 29th, 2017) but are giving current users of the software time to implement the fix before releasing it publicly.
-
-If you have a public installation of the software, please email info at hotosm.org for information on how to fix the bug.
-
-Please delay downloading and installing the current version of the software on a public server until the fix is merged into this repository.
-
-# OpenStreetMap Tasking Manager
-
-[![Build Status](https://travis-ci.org/hotosm/osm-tasking-manager2.svg?branch=master)](https://travis-ci.org/hotosm/osm-tasking-manager2)
-[![Coverage Status](https://coveralls.io/repos/hotosm/osm-tasking-manager2/badge.png?branch=master)](https://coveralls.io/r/hotosm/osm-tasking-manager2?branch=master)
 
 ## About
 
 OSMTM enables collaborative work on specific areas in OpenStreetMap by defining
-clear workflows to be achieved and by breaking tasks down into pieces.
+clear workflows to be achieved and by breaking tasks down into pieces.  This is a fork from [this](https://github.com/hotosm/osm-tasking-manager2) repo that allows us to use this tool internally.
 
 The application is written in Python using the Pyramid framework.
 
 This is the 2.0 version of the Tasking Manager.
 
 See a list of Tasking Manager installations [here](http://wiki.openstreetmap.org/wiki/OSM_Tasking_Manager#Operational_installations_of_the_Tasking_Manager).
+
+## Usage
+
+### Login
+
+Click the button in the upper right hand corner to login with your OpenStreetMaps account.
+
+![](instructions/aightm_login.gif)
+
+### Select a Task
+
+Click on the map to select a task
+
+![](instructions/aightm_select_task.gif)
+
+### Map some stuff...
+
+Click the polygon button in the upper left hand corner to begin mapping a polygon.   Click the first vertex to complete the polygon.  Click the "Done Mapping" button when finished.
+
+![](instructions/aightm_segment.gif)
 
 ## Installation
 
