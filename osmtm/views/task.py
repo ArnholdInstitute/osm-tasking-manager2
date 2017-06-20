@@ -16,6 +16,7 @@ from ..models import (
     User,
     Message,
     Feature,
+    OSM,
 )
 
 import shapely, json
@@ -93,17 +94,24 @@ def __get_task(request, lock_for_update=False):
         raise HTTPNotFound(_("This task doesn't exist."))
     return task
 
-def __get_features(request, task):
-    project_id = request.matchdict['project']
-    #geom = shape.to_shape(task.geometry)
+def __get_osm(request, task):
+    query = DBSession.query(OSM).filter(task.geometry.ST_Contains(OSM.geom)) \
+        .filter(or_(OSM.removed == False, OSM.removed.is_(None)))
 
-    
+    try:
+        features = query.all()
+    except OperationalError:
+        raise HTTPBadRequest(_("Cannot fetch OSM features."))
+
+    return features
+
+def __get_features(request, task):
     query = DBSession.query(Feature).filter(task.geometry.ST_Contains(Feature.geometry))
 
     try:
         features = query.all()
     except OperationalError:  # pragma: no cover
-        raise HTTPBadRequest(_("Cannot update task. Record lock for update."))
+        raise HTTPBadRequest(_("Cannot fetch features"))
 
     return features
 
@@ -149,6 +157,7 @@ def features_post(request):
     newFeatures = request.json_body['newFeatures'] if 'newFeatures' in request.json_body else []
     editedFeatures = request.json_body['editedFeatures'] if 'editedFeatures' in request.json_body else []
     deletedIDs = request.json_body['deletedIDs'] if 'deletedIDs' in request.json_body else []
+    deletedOSM = request.json_body['deletedOSM'] if 'deletedOSM' in request.json_body else []
 
     for feature in newFeatures:
         DBSession.add(Feature(feature, project_id, task_id, username))
@@ -156,8 +165,13 @@ def features_post(request):
     for feature in editedFeatures:
         geom = shape.from_shape(shapely.geometry.shape(feature['geometry']))
         update = {Feature.geometry : ST_SetSRID(geom, 4326)}
-        DBSession.query(Feature).filter(Feature.id==feature['properties']['id']).update(update, synchronize_session='fetch')
+        DBSession.query(Feature).filter(Feature.id==feature['properties']['id']) \
+            .update(update, synchronize_session='fetch')
     
+    for id in deletedOSM:
+        DBSession.query(OSM).filter(OSM.osm_id == id) \
+            .update({OSM.removed : True}, synchronize_session='fetch')
+
     for id in deletedIDs:
         DBSession.query(Feature).filter(Feature.id == id).delete()
 
@@ -169,6 +183,7 @@ def edit_task(request):
     user = __get_user(request)
     task = __get_task(request)
     features = __get_features(request, task)
+    osm_features = __get_osm(request, task)
     __ensure_task_locked(request, task, user)
 
     add_comment(request, task, user)
@@ -179,13 +194,20 @@ def edit_task(request):
         temp = {'geometry' : temp, 'type' : 'Feature', 'properties' : props}
         features[i] = temp
 
+    for i, osm_feature in enumerate(osm_features):
+        temp = shapely.geometry.mapping(shape.to_shape(osm_feature.geom))
+        props = {'osm_id' : osm_feature.osm_id}
+        temp = {'geometry' : temp, 'type' : 'Feature', 'properties' : props}
+        osm_features[i] = temp
+
     tile_layer = os.environ['TILE_LAYER'] if 'TILE_LAYER' in os.environ else 'http://{s}.tile.osm.org/{z}/{x}/{y}.png'
 
     return dict(
         task=task,
         user=user,
         features=json.dumps(features),
-        tile_layer=tile_layer
+        tile_layer=tile_layer,
+        osm_features=json.dumps(osm_features)
     )
 
 @view_config(route_name='task_xhr', renderer='task.mako', http_cache=0)
@@ -303,8 +325,6 @@ def lock(request):
     DBSession.add(task)
     return dict(success=True, task=dict(id=task.id),
                 msg=_("Task locked. You can start mapping."))
-
-
 
 @view_config(route_name='task_unlock', renderer="json")
 def unlock(request):

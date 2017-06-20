@@ -6,15 +6,20 @@ geometry_as_shape = shape.to_shape(task.geometry)
 bounds = geometry_as_shape.bounds
 project = task.project
 x = json.dumps(features)
+y = json.dumps(osm_features)
 
 %>
 <div id='map' style="position: absolute; top:0;left: 0; right: 0; bottom: 0">
-  <button id="done-mapping" class="btn btn-default" style="position: absolute; z-index: 5000; top: 20; right:20; height:40; border-radius: 10px;background-color : #337AB7; color : white;">
+  <button id="done-mapping" class="btn btn-default" style="position: absolute; z-index: 5000; top: 20; right:20; height:40; border-radius: 10px;background-color : #337AB7; color : white; width : 100;">
     Done Mapping
   </button>
-  <button hidden id="delete-feature" class="btn btn-default" style="position: absolute; z-index: 5000; top: 70; right:20; height:40; border-radius: 10px;background-color : red; color : white;">
+  <button hidden id="delete-feature" class="btn btn-default" style="position: absolute; z-index: 5000; top: 70; right:20; height:40; border-radius: 10px;background-color : red; color : white; width:100;">
     Delete Feature
   </button>
+  <button hidden id="add-feature" class="btn btn-default" style="position: absolute; z-index: 5000; top: 120; right:20; height:40; border-radius: 10px;background-color : green; color : white; width : 100">
+    Add Feature
+  </button>
+
 
 </div>
 
@@ -32,10 +37,12 @@ x = json.dumps(features)
   L.rectangle(task_bounds, {color: "#ff7800", fillOpacity : 0, weight: 1}).addTo(map);
 
   var existingFeatures = JSON.parse(${x | n})
+  var osm_features = JSON.parse(${y | n})
 
   var edited = {};
   var polygons = {};
   var deleted = [];
+  var osm_deleted = [];
 
   var nextID = 0;
   var selectedPolygon = null;
@@ -81,22 +88,36 @@ x = json.dumps(features)
         selectedPolygon = polygon;
         polygon.enableEdit();
         $("#delete-feature").removeAttr("hidden");
+        if(polygon.osm_id){
+          $("#add-feature").removeAttr("hidden");
+        }
         L.DomEvent.stopPropagation(e)
       });
     }
   }
 
-  existingFeatures.forEach(function(feature){
-    var polygon = L.polygon(turf.flip(feature).geometry.coordinates, {color : 'red', weight : 1, fillOpacity : 0})
-    polygon.id = feature.properties.id;
-    polygon.addTo(map)
-    _disableClickPropagation(polygon.getElement(), polygon)
+  function plotFeatures(features, color){
+    features.forEach(function(feature){
+      var polygon = L.polygon(turf.flip(feature).geometry.coordinates, {color : color, weight : 1, fillOpacity : 0})
+      polygon.id = feature.properties.id;
 
-    polygon.on('editable:vertex:dragend', function(){
-      edited[polygon.id] = polygon;
+      if(feature.properties.osm_id){
+        polygon.osm_id = feature.properties.osm_id
+      }
+
+      polygon.addTo(map)
+      _disableClickPropagation(polygon.getElement(), polygon)
+
+      if(polygon.osm_id == null){
+        polygon.on('editable:vertex:dragend', function(){
+            edited[polygon.id] = polygon;
+        })
+      }
     })
+  }
 
-  })
+  plotFeatures(existingFeatures, 'red')
+  plotFeatures(osm_features, 'yellow')
 
   $("#delete-feature").click(function(e){
     if(polygons[selectedPolygon.id] == null){
@@ -110,6 +131,20 @@ x = json.dumps(features)
       delete polygons[selectedPolygon.id]
     }
     map.removeLayer(selectedPolygon)
+  })
+
+  $("#add-feature").click(function(e){
+    // Delete from the OSM table and insert into the features table.
+    osm_deleted.push(selectedPolygon.osm_id);
+    selectedPolygon.id = nextID;
+    nextID++;
+    polygons[selectedPolygon.id] = selectedPolygon;
+
+    selectedPolygon.setStyle({color : 'red'})
+    selectedPolygon.disableEdit()
+    selectedPolygon = null;
+
+
   })
 
   map.on('editable:drawing:end', function(e){
@@ -128,6 +163,7 @@ x = json.dumps(features)
 
   map.on('click', function(event){
     $("#delete-feature").attr('hidden', "true")
+    $("#add-feature").attr('hidden', "true")
     if(selectedPolygon) selectedPolygon.disableEdit()
     selectedPolygon = null;
   })
@@ -151,7 +187,8 @@ x = json.dumps(features)
         data : JSON.stringify({
           newFeatures : newFeatures, 
           editedFeatures : editedFeatures,
-          deletedIDs : deleted
+          deletedIDs : deleted,
+          deletedOSM : osm_deleted
         }),
         contentType: "application/json; charset=utf-8",
         dataType : "json",

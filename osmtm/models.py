@@ -284,6 +284,20 @@ def feature_id_factory(context):
     else:
         return 1
 
+class OSM(Base):
+    __tablename__ = "osm"
+    gid = Column(Integer, default=feature_id_factory, primary_key=True)
+    osm_id = Column(Integer)
+    geom = Column(Geometry("Geometry", srid=4326))
+    type = Column(Unicode)
+    fclass = Column(Unicode)
+    code = Column(Integer)
+
+    removed  = Column(Boolean)
+
+    Index('feature_geometry', geom, postgresql_using='gist')
+    
+
 class Feature(Base):
     __tablename__ = "features"
     id = Column(Integer, default=feature_id_factory)
